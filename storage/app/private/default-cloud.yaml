@@ -1,0 +1,12 @@
+clouds:
+  project-name:
+    auth:
+      auth_url: "{{auth-url}}"
+      username: "{{username}}"
+      password: "{{password}}"
+      project_id: "{{project-id}}"
+      project_name: "{{project-name}}"
+      user_domain_name: "Default"
+    region_name: "{{region-name}}"
+    interface: "public"
+    identity_api_version: 3
