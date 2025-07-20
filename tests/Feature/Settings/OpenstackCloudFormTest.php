@@ -15,8 +15,6 @@ it('can handle yaml', function () {
 
     $component->call('rendering');
 
-    ray($component->content());
-
     $component->assertHasNoErrors();
     $component->assertSee('test.yaml');
     $component->assertSet('cloud_yaml', null); // the file is processed and set to null
