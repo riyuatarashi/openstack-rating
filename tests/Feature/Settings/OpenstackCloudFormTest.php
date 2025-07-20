@@ -19,7 +19,7 @@ it('can handle yaml', function () {
 
     $component->assertHasNoErrors();
     $component->assertSee('test.yaml');
-    $component->assertSet('cloud_yaml', null);
+    $component->assertSet('cloud_yaml', null); // the file is processed and set to null
     $component->assertSet('cloud_yaml_content', 'test.yaml content');
 });
 
