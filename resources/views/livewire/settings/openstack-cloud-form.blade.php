@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\OpenstackService;
 use Livewire\Attributes\Validate;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Volt\Component;
@@ -17,61 +18,73 @@ new class extends Component {
     ])]
     public ?TemporaryUploadedFile $cloud_yaml = null;
 
-    public array $coudYamlData = [];
-    public string $content = '';
-    public bool $isPasswordLess = false;
+    public string $cloud_yaml_content = '';
+    public bool $is_password_less = false;
 
+    public array $cloudYamlData = [];
     public bool $isContentDisplayable = false;
+
+    private readonly OpenstackService $openstackService;
+
+    public function __construct() {
+        parent::__construct();
+
+        $this->openstackService = app(OpenstackService::class);
+    }
 
     public function rendering(): void
     {
         if (! empty($this->cloud_yaml)) {
-            $this->content = $this->cloud_yaml->get();
+            $this->cloud_yaml_content = $this->cloud_yaml->get();
 
             $this->cloud_yaml->delete();
             $this->cloud_yaml = null;
         }
 
-        if (! empty($this->content)) {
+        if (! empty($this->cloud_yaml_content)) {
             $this->sanitizeYamlContent();
             $this->isContentDisplayable = false;
-            $this->resetErrorBag(['content']);
+            $this->resetErrorBag(['cloud_yaml_content']);
         }
     }
 
     public function save(): void
     {
-        if (empty($this->content) || $this->content === $this->getDefaultCloudYaml()) {
+        if (empty($this->cloud_yaml_content) || $this->cloud_yaml_content === $this->getDefaultCloudYaml()) {
             $this->isContentDisplayable = true;
-            $this->addError('content', __('Le contenu du fichier YAML est requis.'));
+            $this->addError('cloud_yaml_content', __('Le contenu du fichier YAML est requis.'));
             return;
         }
 
-        // Here you would typically save the content to a file or database
-        // For demonstration, we will just log it
-        ray($this->content)->green();
+        try {
+            $this->openstackService->createCloudEntry($this->cloud_yaml_content);
+        } catch (Throwable $e) {
+            $this->isContentDisplayable = true;
+            $this->addError('cloud_yaml_content', __('Erreur lors de la sauvegarde du fichier YAML : :message', ['message' => $e->getMessage()]));
+            return;
+        }
     }
 
     public function reboot(): void
     {
         $this->cloud_yaml = null;
-        $this->content = '';
+        $this->cloud_yaml_content = '';
         $this->isContentDisplayable = false;
         $this->resetErrorBag();
     }
 
     public function setDefault(): void
     {
-        $this->content = $this->getDefaultCloudYaml();
+        $this->cloud_yaml_content = $this->getDefaultCloudYaml();
     }
 
     private function sanitizeYamlContent(): void
     {
-        if (empty($this->content)) {
+        if (empty($this->cloud_yaml_content)) {
             return;
         }
 
-        if ($this->isPasswordLess) {
+        if ($this->is_password_less) {
             $pattern = '/^([ ]*?)password:(.*)$/m';
             $replacement = '$1password-less: true,';
         } else {
@@ -79,13 +92,12 @@ new class extends Component {
             $replacement = '$1password:$2';
         }
 
-        $this->content = preg_replace($pattern, $replacement, $this->content);
+        $this->cloud_yaml_content = preg_replace($pattern, $replacement, $this->cloud_yaml_content);
     }
 
     private function getDefaultCloudYaml(): string
     {
-        return Storage::disk('local')
-            ->get('default-cloud.yaml');
+        return Storage::disk('local')->get('default-cloud.yaml');
     }
 }; ?>
 
@@ -110,29 +122,29 @@ new class extends Component {
     </div>
 
     <!-- CONDITIONAL DISPLAY of the YAML content -->
-    @if(! empty($this->content) || $this->isContentDisplayable)
+    @if(! empty($this->cloud_yaml_content) || $this->isContentDisplayable)
         <div class="mt-2">
             <flux:textarea
-                    wire:model.blur="content"
+                    wire:model.blur="cloud_yaml_content"
                     label="{{ __('Contenu du fichier YAML') }}"
                     rows="auto"
                     class="w-max"
             >
-                {{ $this->content }}
+                {{ $this->cloud_yaml_content }}
             </flux:textarea>
         </div>
 
-        <flux:error wire:model="content" class="mt-2" />
+        <flux:error wire:model="cloud_yaml_content" class="mt-2" />
     @endif
 
     <!-- CHECKBOX that toggles the password-less mode -->
     <div class="mt-4">
         <flux:field variant="inline">
-            <flux:checkbox wire:model.live="isPasswordLess" />
+            <flux:checkbox wire:model.live="is_password_less" />
 
             <flux:label>@lang('Utiliser un accès sans mot de passe')</flux:label>
 
-            <flux:error name="isPasswordLess" />
+            <flux:error name="is_password_less" />
         </flux:field>
 
         <flux:text variant="subtle" class="mt-2">
