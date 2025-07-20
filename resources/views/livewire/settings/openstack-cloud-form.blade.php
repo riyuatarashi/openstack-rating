@@ -21,7 +21,7 @@ new class extends Component {
     public string $cloud_yaml_content = '';
     public bool $is_password_less = false;
 
-    public array $coudYamlData = [];
+    public array $cloudYamlData = [];
     public bool $isContentDisplayable = false;
 
     private readonly OpenstackService $openstackService;
