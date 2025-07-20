@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\OpenstackService;
 use Livewire\Attributes\Validate;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Volt\Component;
@@ -22,6 +23,14 @@ new class extends Component {
 
     public array $coudYamlData = [];
     public bool $isContentDisplayable = false;
+
+    private readonly OpenstackService $openstackService;
+
+    public function __construct() {
+        parent::__construct();
+
+        $this->openstackService = app(OpenstackService::class);
+    }
 
     public function rendering(): void
     {
@@ -47,9 +56,13 @@ new class extends Component {
             return;
         }
 
-        // Here you would typically save the content to a file or database
-        // For demonstration, we will just log it
-        ray($this->cloud_yaml_content)->green();
+        try {
+            $this->openstackService->createCloudEntry($this->cloud_yaml_content);
+        } catch (Throwable $e) {
+            $this->isContentDisplayable = true;
+            $this->addError('cloud_yaml_content', __('Erreur lors de la sauvegarde du fichier YAML : :message', ['message' => $e->getMessage()]));
+            return;
+        }
     }
 
     public function reboot(): void
@@ -84,8 +97,7 @@ new class extends Component {
 
     private function getDefaultCloudYaml(): string
     {
-        return Storage::disk('local')
-            ->get('default-cloud.yaml');
+        return Storage::disk('local')->get('default-cloud.yaml');
     }
 }; ?>
 
