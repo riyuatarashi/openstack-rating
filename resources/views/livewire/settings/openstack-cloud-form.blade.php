@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\OpenstackService;
+use App\Services\OpenstackYamlService;
 use Livewire\Attributes\Validate;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Volt\Component;
@@ -24,12 +24,13 @@ new class extends Component {
     public array $cloudYamlData = [];
     public bool $isContentDisplayable = false;
 
-    private readonly OpenstackService $openstackService;
+    private readonly OpenstackYamlService $openstackYamlService;
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
 
-        $this->openstackService = app(OpenstackService::class);
+        $this->openstackYamlService = app(OpenstackYamlService::class);
     }
 
     public function rendering(): void
@@ -57,12 +58,15 @@ new class extends Component {
         }
 
         try {
-            $this->openstackService->createCloudEntry($this->cloud_yaml_content);
+            $this->openstackYamlService->createCloudEntry($this->cloud_yaml_content);
         } catch (Throwable $e) {
             $this->isContentDisplayable = true;
             $this->addError('cloud_yaml_content', __('Erreur lors de la sauvegarde du fichier YAML : :message', ['message' => $e->getMessage()]));
             return;
         }
+
+        $this->dispatch('configCreated');
+        $this->modal('new-config')->close();
     }
 
     public function reboot(): void
@@ -101,65 +105,71 @@ new class extends Component {
     }
 }; ?>
 
-<section>
-    <!-- BUTTON to get YAML content -->
-    <div class="grid grid-cols-2 gap-x-4 gap-y-6">
-        <flux:input
-                wire:model.blur="cloud_yaml"
-                error="cloud_yaml"
-                type="file"
-                label="{{ __('YAML de configuration') }}"
-        />
+<section class="w-fit">
+    <flux:modal.trigger name="new-config">
+        <flux:button icon="plus" />
+    </flux:modal.trigger>
 
-        <flux:button
-                variant="subtle"
-                size="xs"
-                wire:click="setDefault"
-                icon="pencil"
-        >
-            @lang('Utiliser un template et remplir à la main')
-        </flux:button>
-    </div>
+    <flux:modal name="new-config" class="min-w-1/3 pr-16" variant="flyout">
+        <!-- BUTTON to get YAML content -->
+        <div class="grid grid-cols-2 gap-x-4 gap-y-6">
+            <flux:input
+                    wire:model.blur="cloud_yaml"
+                    error="cloud_yaml"
+                    type="file"
+                    label="{{ __('YAML de configuration') }}"
+            />
 
-    <!-- CONDITIONAL DISPLAY of the YAML content -->
-    @if(! empty($this->cloud_yaml_content) || $this->isContentDisplayable)
-        <div class="mt-2">
-            <flux:textarea
-                    wire:model.blur="cloud_yaml_content"
-                    label="{{ __('Contenu du fichier YAML') }}"
-                    rows="auto"
-                    class="w-max"
+            <flux:button
+                    variant="subtle"
+                    size="xs"
+                    wire:click="setDefault"
+                    icon="pencil"
             >
-                {{ $this->cloud_yaml_content }}
-            </flux:textarea>
+                @lang('Utiliser un template et remplir à la main')
+            </flux:button>
         </div>
 
-        <flux:error wire:model="cloud_yaml_content" class="mt-2" />
-    @endif
+        <!-- CONDITIONAL DISPLAY of the YAML content -->
+        @if(! empty($this->cloud_yaml_content) || $this->isContentDisplayable)
+            <div class="mt-2">
+                <flux:textarea
+                        wire:model.blur="cloud_yaml_content"
+                        label="{{ __('Contenu du fichier YAML') }}"
+                        rows="auto"
+                        class="w-max"
+                >
+                    {{ $this->cloud_yaml_content }}
+                </flux:textarea>
+            </div>
 
-    <!-- CHECKBOX that toggles the password-less mode -->
-    <div class="mt-4">
-        <flux:field variant="inline">
-            <flux:checkbox wire:model.live="is_password_less" />
+            <flux:error wire:model="cloud_yaml_content" class="mt-2" />
+        @endif
 
-            <flux:label>@lang('Utiliser un accès sans mot de passe')</flux:label>
+        <!-- CHECKBOX that toggles the password-less mode -->
+        <div class="mt-4">
+            <flux:field variant="inline">
+                <flux:checkbox wire:model.live="is_password_less" />
 
-            <flux:error name="is_password_less" />
-        </flux:field>
+                <flux:label>@lang('Utiliser un accès sans mot de passe')</flux:label>
 
-        <flux:text variant="subtle" class="mt-2">
-            @lang('Si vous cochez cette case, vous devrez le taper manuellement lors de chaque appel à openstack.')
-        </flux:text>
-    </div>
+                <flux:error name="is_password_less" />
+            </flux:field>
 
-    <!-- BUTTON to save or reboot -->
-    <div class="grid grid-cols-3 gap-x-4 gap-y-6 items-center mt-8">
-        <flux:button variant="primary" wire:click="save">
-            @lang('Enregistrer')
-        </flux:button>
+            <flux:text variant="subtle" class="mt-2">
+                @lang('Si vous cochez cette case, vous devrez le taper manuellement lors de chaque appel à openstack.')
+            </flux:text>
+        </div>
 
-        <flux:button variant="subtle" wire:click="reboot" size="sm">
-            @lang('Réinitialiser')
-        </flux:button>
-    </div>
+        <!-- BUTTON to save or reboot -->
+        <div class="grid grid-cols-3 gap-x-4 gap-y-6 items-center mt-8">
+            <flux:button variant="primary" wire:click="save">
+                @lang('Enregistrer')
+            </flux:button>
+
+            <flux:button variant="subtle" wire:click="reboot" size="sm">
+                @lang('Réinitialiser')
+            </flux:button>
+        </div>
+    </flux:modal>
 </section>

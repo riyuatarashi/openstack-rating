@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\OpenstackService;
 use Carbon\Carbon;
 use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
@@ -13,9 +14,12 @@ new class extends Component {
 
     public string $time_diff;
 
+    private OpenstackService $openstackService;
+
     public function boot(): void
     {
         Carbon::setLocale(config('app.locale'));
+        $this->openstackService = app(OpenstackService::class);
     }
 
     public function mount(): void
@@ -35,6 +39,13 @@ new class extends Component {
         $this->end_at = $end_at->startOfHour()->toIso8601String();
 
         $this->time_diff = $begin_at->diff($end_at)->forHumans();
+
+        if (OpenstackService::isCloudConfigExistForAuth()) {
+            $ratings = $this->openstackService->getRatingsFor(
+                $begin_at,
+                $end_at
+            );
+        }
     }
 }; ?>
 
@@ -53,7 +64,7 @@ new class extends Component {
             </flux:tooltip.content>
         </flux:tooltip>
     </flux:heading>
-    <flux:text variant="subtle" wire:text="time_diff" class="mb-5"/>
+    <flux:text variant="subtle" wire:text="time_diff" class="mb-5" />
 
     <div class="grid grid-cols-2 gap-x-4 gap-y-6">
         <flux:input
