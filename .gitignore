@@ -23,3 +23,7 @@ yarn-error.log
 /.zed
 .DS_Store
 **/*/.DS_Store
+
+**/caddy
+frankenphp
+frankenphp-worker.php
