@@ -2,19 +2,15 @@
 
 use App\Services\OpenstackService;
 use Carbon\Carbon;
+use Flux\DateRange;
 use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
 
 new class extends Component {
-    #[Validate('string')]
-    public string $begin_at;
-
-    #[Validate('string')]
-    public string $end_at;
-
+    #[Session]
+    public DateRange $date_range;
     public string $time_diff;
-
-    private OpenstackService $openstackService;
+    public array $data;
 
     public function boot(): void
     {
@@ -24,27 +20,16 @@ new class extends Component {
 
     public function mount(): void
     {
-        $this->begin_at = now()->startOfMonth()->toIso8601String();
-        $this->end_at = now()->subHour()->toIso8601String();
+        $this->date_range = new DateRange(now()->startOfMonth(), now()->subDay()->startOfDay());
     }
 
     public function rendering(): void
     {
-        $this->validate();
-
-        $begin_at = Carbon::parse($this->begin_at);
-        $end_at = Carbon::parse($this->end_at);
-
-        $this->begin_at = $begin_at->startOfHour()->toIso8601String();
-        $this->end_at = $end_at->startOfHour()->toIso8601String();
-
-        $this->time_diff = $begin_at->diff($end_at)->forHumans();
+        $this->time_diff = $this->date_range->start()->diff($this->date_range->end())->forHumans();
 
         if (OpenstackService::isCloudConfigExistForAuth()) {
-            $ratings = $this->openstackService->getRatingsFor(
-                $begin_at,
-                $end_at
-            );
+            $ratings = $this->openstackService->getRatingsFor($this->date_range);
+            $this->data = $this->openstackService->parseRatingsToGetTotalByDay($ratings);
         }
     }
 }; ?>
@@ -52,37 +37,63 @@ new class extends Component {
 <section>
     <flux:heading size="lg" class="flex items-center gap-1">
         @lang('Choisissez la fourchette de date que vous souhaitez')
-
-        <flux:tooltip toggleable="">
-            <flux:button icon="information-circle" size="sm" variant="ghost" />
-
-            <flux:tooltip.content class="max-w-[20rem] space-y-2">
-                <p>@lang('Vous pouvez entrer une date avec une heure précise.')</p>
-                <p>@lang('Format standard :') <i>YYYY-mm-dd HH:ii</i></p>
-                <p>@lang('Il est aussi possible de saisir la date en langage naturel (en anglais uniquement).')</p>
-                <p>@lang('Par exemple :') <i>first day of next month at 14:30</i></p>
-            </flux:tooltip.content>
-        </flux:tooltip>
     </flux:heading>
+
     <flux:text variant="subtle" wire:text="time_diff" class="mb-5" />
 
-    <div class="grid grid-cols-2 gap-x-4 gap-y-6">
-        <flux:input
-                wire:model.blur="begin_at"
-                error="begin_at"
-                type="text"
-                label="{{ __('A partir de :') }}"
-                placeholder="{{ now()->startOfMonth()->format('Y-m-d') }}"
-                icon="calendar-date-range"
+    <div class="mt-5 mx-auto w-max">
+        <flux:calendar
+                :selectable-header="true"
+                size="xs"
+                mode="range"
+                max="{{ now()->subDay()->format('Y-m-d') }}"
+                wire:model.change="date_range"
         />
+    </div>
 
-        <flux:input
-                wire:model.blur="end_at"
-                error="end_at"
-                type="text"
-                label="{{ __('Jusqu\'à :') }}"
-                placeholder="{{ now()->subHour()->format('Y-m-d') }}"
-                icon="calendar-date-range"
-        />
+    <flux:separator />
+
+    <flux:chart wire:model="data" class="aspect-3/1 mt-5">
+        <flux:chart.svg>
+            <flux:chart.line field="total" class="text-pink-500 dark:text-pink-400" />
+
+            <flux:chart.axis axis="x" field="date">
+                <flux:chart.axis.line />
+                <flux:chart.axis.tick />
+            </flux:chart.axis>
+
+            <flux:chart.axis axis="y" :format="['style' => 'currency', 'currency' => 'EUR']">
+                <flux:chart.axis.grid />
+                <flux:chart.axis.tick />
+            </flux:chart.axis>
+
+            <flux:chart.cursor />
+        </flux:chart.svg>
+
+        <flux:chart.tooltip>
+            <flux:chart.tooltip.heading
+                field="date"
+                :format="[
+                    'year' => 'numeric',
+                    'month' => 'numeric',
+                    'day' => 'numeric',
+                    'hour' => '2-digit',
+                    'minute' => '2-digit',
+                    'second' => '2-digit'
+                ]" />
+            <flux:chart.tooltip.value field="total" label="Price" />
+        </flux:chart.tooltip>
+    </flux:chart>
+
+    <div class="grid auto-rows-min gap-4 md:grid-cols-3">
+        <div class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
+            <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
+        </div>
+        <div class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
+            <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
+        </div>
+        <div class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
+            <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
+        </div>
     </div>
 </section>

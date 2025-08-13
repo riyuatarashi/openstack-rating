@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\OpenstackCloud;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Http;
 
 final class OpenstackService
@@ -84,7 +85,7 @@ final class OpenstackService
         return $url;
     }
 
-    public function getRatingsFor(?Carbon $begin = null, ?Carbon $end = null): array
+    public function getRatingsFor(?CarbonPeriod $period): array
     {
         if (! self::isCloudConfigExistForAuth()) {
             throw new \RuntimeException('No OpenStack cloud configuration found for the user.');
@@ -100,16 +101,66 @@ final class OpenstackService
         ])
             ->acceptJson()
             ->get($cloud->endpoint_rating.'v1/storage/dataframes', [
-                'begin' => $begin?->toIso8601String() ?? now()->startOfMonth()->toIso8601String(),
-                'end' => $end?->toIso8601String() ?? now()->subHour()->startOfHour()->toIso8601String(),
+                'begin' => $period?->start()->toIso8601String() ?? now()->startOfMonth()->toIso8601String(),
+                'end' => $period?->end()->toIso8601String() ?? now()->subHour()->startOfHour()->toIso8601String(),
             ]);
 
         if ($response->failed()) {
             throw new \RuntimeException('Failed to fetch ratings from OpenStack: '.$response->body());
         }
 
-        ray($response->json());
+        //        foreach ($response->json('dataframes') as $dataframe) {
+        //            //
+        //        }
 
-        return $response->json('data', []);
+        return $response->json('dataframes', []);
+    }
+
+    /**
+     * @param  array{
+     *     array{
+     *         begin: string,
+     *         end: string,
+     *         tenant_id: string,
+     *         resources: array{
+     *             array{
+     *                 rating: numeric-string,
+     *                 service: string,
+     *                 desc: array{
+     *                     flavor_name: string,
+     *                     id: string,
+     *                     project_id: string
+     *                 },
+     *                 volume: numeric-string
+     *             }
+     *         }
+     *     }
+     * }  $ratings
+     * @return array{
+     *     array{
+     *         date:string,
+     *         total:float
+     *     }
+     * }
+     */
+    public function parseRatingsToGetTotalByDay(array $ratings): array
+    {
+        $result = [];
+
+        foreach ($ratings as $rating) {
+            $date = Carbon::parse($rating['begin'])->startOfHour()->format('Y-m-d');
+            $total = ((float) $rating['resources'][0]['rating'] / 55.5) * 1.20; // Assuming we use € and 20% TAX
+
+            if (! isset($result[$date])) {
+                $result[$date] = [
+                    'date' => $date,
+                    'total' => $total,
+                ];
+            }
+
+            $result[$date]['total'] += $total;
+        }
+
+        return array_values($result);
     }
 }
