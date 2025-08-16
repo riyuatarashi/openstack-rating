@@ -21,7 +21,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $remember_token
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\OpenstackCloud> $openstackClouds
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\OsCloud> $clouds
  */
 final class User extends Authenticatable implements MustVerifyEmail
 {
@@ -77,8 +77,8 @@ final class User extends Authenticatable implements MustVerifyEmail
             ->implode('');
     }
 
-    public function openstackClouds(): HasMany
+    public function clouds(): HasMany
     {
-        return $this->hasMany(OpenstackCloud::class);
+        return $this->hasMany(OsCloud::class);
     }
 }

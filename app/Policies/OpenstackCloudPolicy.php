@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Models\OpenstackCloud;
+use App\Models\OsCloud;
 use App\Models\User;
 
 class OpenstackCloudPolicy
@@ -18,7 +18,7 @@ class OpenstackCloudPolicy
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, OpenstackCloud $openstackCloud): bool
+    public function view(User $user, OsCloud $openstackCloud): bool
     {
         return $user->hasRole('admin') || $user->id === $openstackCloud->user_id;
     }
@@ -34,7 +34,7 @@ class OpenstackCloudPolicy
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, OpenstackCloud $openstackCloud): bool
+    public function update(User $user, OsCloud $openstackCloud): bool
     {
         return $user->hasRole('admin') || $user->id === $openstackCloud->user_id;
     }
@@ -42,7 +42,7 @@ class OpenstackCloudPolicy
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, OpenstackCloud $openstackCloud): bool
+    public function delete(User $user, OsCloud $openstackCloud): bool
     {
         return $user->hasRole('admin') || $user->id === $openstackCloud->user_id;
     }
@@ -50,7 +50,7 @@ class OpenstackCloudPolicy
     /**
      * Determine whether the user can restore the model.
      */
-    public function restore(User $user, OpenstackCloud $openstackCloud): bool
+    public function restore(User $user, OsCloud $openstackCloud): bool
     {
         return $user->hasRole('admin');
     }
@@ -58,7 +58,7 @@ class OpenstackCloudPolicy
     /**
      * Determine whether the user can permanently delete the model.
      */
-    public function forceDelete(User $user, OpenstackCloud $openstackCloud): bool
+    public function forceDelete(User $user, OsCloud $openstackCloud): bool
     {
         return $user->hasRole('admin');
     }

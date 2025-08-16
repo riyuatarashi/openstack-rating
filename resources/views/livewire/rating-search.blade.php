@@ -32,7 +32,6 @@ new class extends Component {
     public function boot(): void
     {
         Carbon::setLocale(config('app.locale'));
-        $this->openstackService = app(OpenstackService::class);
         shuffle($this->colors);
     }
 
@@ -48,11 +47,16 @@ new class extends Component {
         if (OpenstackService::isCloudConfigExistForAuth()) {
             $ratings = [];
 
-            /** @var \App\Models\OpenstackCloud $osCloud */
-            $osCloud = auth()->user()->openstackClouds->first();
+            /** @var \App\Models\OsCloud $osCloud */
+            $osCloud = auth()->user()->clouds->first();
 
             /** @var \App\Models\OsProject $osProject */
             $osProject = $osCloud->osProjects->first();
+
+            if (! $osProject) {
+                $this->data = [];
+                return;
+            }
 
             $osProject
                 ->ratings()
@@ -67,14 +71,14 @@ new class extends Component {
 
                         if (! isset($ratings[$date])) {
                             $ratings[$date] = [
-                                'date'  => $date,
+                                'date' => $date,
                             ];
                         }
 
                         if (! isset($ratings[$date][$osRating->resource->resource_identifier])) {
                             $ratings[$date][$osRating->resource->resource_identifier] = 0;
                             $this->resources[$osRating->resource->resource_identifier] = [
-                                'name' => $osRating->resource->name,
+                                'name'  => $osRating->resource->name,
                                 'color' => $this->colors[$this->color_index++ % count($this->colors)],
                             ];
                         }
@@ -84,7 +88,6 @@ new class extends Component {
                 });
 
             ksort($ratings);
-
             $this->data = array_values($ratings);
         }
     }

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\RegisterOsRatings;
 use App\Models\User;
 use App\Services\OpenstackService;
 use Carbon\Carbon;
@@ -11,7 +12,7 @@ use Illuminate\Console\Command;
 final class GatherOpenstackRating extends Command
 {
     /** @var string */
-    protected $signature = 'app:gather-openstack-ratings
+    protected $signature = 'app:gather-os-ratings
                             {start : The start date for gathering data}
                             {end : The end date for gathering data}
                             {--u|user= : The user to gather data for}
@@ -41,9 +42,11 @@ final class GatherOpenstackRating extends Command
         } elseif ($user) {
             $this->info('Gathering data for user '.$user.' from '.$start->toDateString().' to '.$end->toDateString());
             $users = User::query()
-                ->where('id', '=', $user)
-                ->orWhere('email', '=', $user)
-                ->orWhere('username', '=', $user)
+                ->when(is_numeric($user), fn ($query) => $query->where('id', '=', (int) $user))
+                ->when(! is_numeric($user), fn ($query) => $query
+                    ->where('email', '=', $user)
+                    ->orWhere('name', '=', $user)
+                )
                 ->get();
         } else {
             $this->error('You must specify either --all or --user option.');
@@ -53,8 +56,34 @@ final class GatherOpenstackRating extends Command
 
         foreach ($users as $user) {
             $this->info("Gathering data for user: {$user->name} (ID: {$user->id})");
-            $ratings = $openstackService->getRatingsFor(new CarbonPeriod($start, $end), $user);
+            $clouds = $user->clouds;
+
+            if ($clouds->isEmpty()) {
+                $this->warn("User {$user->name} (ID: {$user->id}) has no OpenStack clouds configured.");
+
+                continue;
+            }
+
+            /** @var \App\Models\OsCloud $cloud */
+            $cloud = $clouds->first();
+
+            $this->info('Gathering data ...');
+            $dataframes = $openstackService->getRatingsFor(new CarbonPeriod($start, $end), $user);
+
+            if (empty($dataframes)) {
+                $this->warn('No dataframes found for user '.$user->name.' (ID: '.$user->id.').');
+
+                continue;
+            }
+
+            $this->info('Processing dataframes ...');
+
+            foreach (array_chunk($dataframes, RegisterOsRatings::DATAFRAMES_PER_JOB) as $dataframes_chunk) {
+                RegisterOsRatings::dispatch($dataframes_chunk, $cloud->id);
+            }
         }
+
+        $this->info("\nGathering OpenStack ratings completed successfully.");
 
         return Command::SUCCESS;
     }

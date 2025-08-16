@@ -9,17 +9,17 @@ use Livewire\WithFileUploads;
 use Symfony\Component\Yaml\Yaml;
 
 new class extends Component {
-    public Collection $openstackClouds;
+    public Collection $osClouds;
 
     public function boot(): void
     {
-        $this->openstackClouds = auth()->user()->openstackClouds;
+        $this->osClouds = auth()->user()->clouds;
     }
 
     public function rendering(bool $hasToRetrieveClouds = false): void
     {
         if ($hasToRetrieveClouds) {
-            $this->openstackClouds = auth()->user()->openstackClouds->fresh();
+            $this->osClouds = auth()->user()->clouds->fresh();
         }
     }
 
@@ -31,7 +31,7 @@ new class extends Component {
 
     public function removeCloud(int $cloudId): void
     {
-        $cloud = auth()->user()->openstackClouds()->find($cloudId);
+        $cloud = auth()->user()->clouds()->find($cloudId);
 
         if ($cloud) {
             $cloud->delete();
@@ -45,7 +45,7 @@ new class extends Component {
 
     <x-settings.layout :heading="__('Openstack Cloud')" :subheading=" __('Gérez vos connections OpenStack')">
         <div class="grid grid-cols-3 gap-4">
-            @if($this->openstackClouds->isEmpty())
+            @if($this->osClouds->isEmpty())
                 <flux:text class="col-span-2">
                     {{ __('Aucun cloud OpenStack n\'est configuré pour le moment.') }}
                 </flux:text>
@@ -55,7 +55,7 @@ new class extends Component {
                 </div>
             @endif
 
-            @foreach($this->openstackClouds as $cloud)
+            @foreach($this->osClouds as $cloud)
                 <div class="col-span-3 flex items-center">
                     <flux:dropdown>
                         <flux:button icon="cog-8-tooth" variant="ghost" />

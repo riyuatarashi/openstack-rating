@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\OpenstackCloud;
+use App\Models\OsCloud;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +21,7 @@ final class OpenstackYamlService
         $this->validateCloudData($clouds);
 
         foreach ($clouds as $cloud) {
-            $openstackCloud = new OpenstackCloud;
+            $openstackCloud = new OsCloud;
             $openstackCloud->fill($cloud);
             $openstackCloud->user_id = $user->id ?? auth()->user()->id;
             $openstackCloud->save();

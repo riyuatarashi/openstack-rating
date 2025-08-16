@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\OpenstackCloud;
-use App\Models\OsProject;
-use App\Models\OsRating;
-use App\Models\OsResource;
+use App\Models\OsCloud;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -17,7 +14,7 @@ final class OpenstackService
 {
     public static function isCloudConfigExistForAuth(?User $user = null): bool
     {
-        return $user?->openstackClouds()->exists() ?? auth()->user()->openstackClouds()->exists();
+        return $user?->clouds()->exists() ?? auth()->user()->clouds()->exists();
     }
 
     public function getAccessToken(?User $user = null): string
@@ -26,8 +23,8 @@ final class OpenstackService
             throw new \RuntimeException('No OpenStack cloud configuration found for the user.');
         }
 
-        /** @var ?\App\Models\OpenstackCloud $cloud */
-        $cloud = $user?->openstackClouds->first() ?? auth()->user()->openstackClouds->first();
+        /** @var ?\App\Models\OsCloud $cloud */
+        $cloud = $user?->clouds->first() ?? auth()->user()->clouds->first();
 
         if (
             $cloud->access_token === null
@@ -65,7 +62,7 @@ final class OpenstackService
         return $cloud->access_token;
     }
 
-    public function retrieveRatingEndpoint(OpenstackCloud $openstackCloud, array $catalog): string
+    public function retrieveRatingEndpoint(OsCloud $openstackCloud, array $catalog): string
     {
         $endpoints = collect($catalog)
             ->where('type', 'rating')
@@ -93,8 +90,8 @@ final class OpenstackService
             throw new \RuntimeException('No OpenStack cloud configuration found for the user.');
         }
 
-        /** @var OpenstackCloud $cloud */
-        $cloud = $user?->openstackClouds->first() ?? auth()->user()->openstackClouds->first();
+        /** @var OsCloud $cloud */
+        $cloud = $user?->clouds->first() ?? auth()->user()->clouds->first();
 
         $accessToken = $this->getAccessToken($user);
         $response = Http::withHeaders([
@@ -109,56 +106,6 @@ final class OpenstackService
 
         if ($response->failed()) {
             throw new \RuntimeException('Failed to fetch ratings from OpenStack: '.$response->body());
-        }
-
-        foreach ($response->json('dataframes') as $dataframe) {
-            foreach ($dataframe['resources'] as $resource) {
-                $OSProject = OsProject::query()->firstOrCreate(
-                    [
-                        'project_identifier' => $resource['desc']['project_id'],
-                    ],
-                    [
-                        'project_identifier' => $resource['desc']['project_id'],
-                        'name' => $resource['desc']['project_id'],
-                        'openstack_cloud_id' => $cloud->id,
-                    ]
-                );
-
-                $OSResource = OsResource::query()->firstOrCreate(
-                    [
-                        'resource_identifier' => $resource['desc']['id'],
-                    ],
-                    [
-                        'resource_identifier' => $resource['desc']['id'],
-                        'name' => $resource['desc']['flavor_name'] ?? $resource['service'],
-                        'flavor_name' => $resource['desc']['flavor_name'] ?? null,
-                        'state' => $resource['desc']['state'] ?? null,
-                        'os_project_id' => $OSProject->id,
-                    ]
-                );
-
-                if (
-                    OsRating::query()
-                        ->where('begin', '=', Carbon::parse($dataframe['begin']))
-                        ->where('end', '=', Carbon::parse($dataframe['end']))
-                        ->where('service', '=', $resource['service'])
-                        ->where('os_resource_id', '=', $OSResource->id)
-                        ->exists()
-                ) {
-                    continue; // Skip if the rating already exists
-                }
-
-                $OSRating = new OsRating;
-                $OSRating->fill([
-                    'rating' => (float) $resource['rating'],
-                    'volume' => (float) $resource['volume'],
-                    'begin' => Carbon::parse($dataframe['begin']),
-                    'end' => Carbon::parse($dataframe['end']),
-                    'service' => $resource['service'],
-                    'os_resource_id' => $OSResource->id,
-                ]);
-                $OSRating->save();
-            }
         }
 
         return $response->json('dataframes', []);
