@@ -42,6 +42,6 @@ final class OsRating extends Model
 
     public function resource(): BelongsTo
     {
-        return $this->belongsTo(OsResource::class);
+        return $this->belongsTo(OsResource::class, 'os_resource_id', 'id');
     }
 }

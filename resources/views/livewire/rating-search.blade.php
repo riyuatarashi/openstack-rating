@@ -12,7 +12,7 @@ new class extends Component {
     public DateRange $date_range;
     public string $time_diff;
     public array $data;
-    public array $resources;
+    public array $resources = [];
 
     private int $color_index = 0;
     private array $colors = [
@@ -56,6 +56,7 @@ new class extends Component {
 
             $osProject
                 ->ratings()
+                ->with('resource')
                 ->where('begin', '>=', $this->date_range->start())
                 ->where('end', '<=', $this->date_range->end()->endOfDay())
                 ->where('rating', '>', 0)

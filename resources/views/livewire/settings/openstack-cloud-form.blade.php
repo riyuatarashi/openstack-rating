@@ -35,14 +35,14 @@ new class extends Component {
 
     public function rendering(): void
     {
-        if (! empty($this->cloud_yaml)) {
+        if ($this->cloud_yaml instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
             $this->cloud_yaml_content = $this->cloud_yaml->get();
 
             $this->cloud_yaml->delete();
             $this->cloud_yaml = null;
         }
 
-        if (! empty($this->cloud_yaml_content)) {
+        if ($this->cloud_yaml_content !== '' && $this->cloud_yaml_content !== '0') {
             $this->sanitizeYamlContent();
             $this->isContentDisplayable = false;
             $this->resetErrorBag(['cloud_yaml_content']);
@@ -51,7 +51,7 @@ new class extends Component {
 
     public function save(): void
     {
-        if (empty($this->cloud_yaml_content) || $this->cloud_yaml_content === $this->getDefaultCloudYaml()) {
+        if ($this->cloud_yaml_content === '' || $this->cloud_yaml_content === '0' || $this->cloud_yaml_content === $this->getDefaultCloudYaml()) {
             $this->isContentDisplayable = true;
             $this->addError('cloud_yaml_content', __('Le contenu du fichier YAML est requis.'));
             return;
@@ -84,7 +84,7 @@ new class extends Component {
 
     private function sanitizeYamlContent(): void
     {
-        if (empty($this->cloud_yaml_content)) {
+        if ($this->cloud_yaml_content === '' || $this->cloud_yaml_content === '0') {
             return;
         }
 
