@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('openstack_clouds', function (Blueprint $table) {
+        Schema::create('os_clouds', function (Blueprint $table) {
             $table->id();
 
             $table->string('name')->unique();
@@ -18,27 +18,27 @@ return new class extends Migration
             $table->string('endpoint_rating')->nullable();
 
             $table->string('auth_url');
-            $table->string('auth_username')->comment('Encrypted');
-            $table->string('auth_password')->comment('Encrypted');
-            $table->string('auth_project_id')->comment('Encrypted');
+            $table->text('auth_username')->comment('Encrypted');
+            $table->text('auth_password')->comment('Encrypted');
+            $table->string('auth_project_id');
             $table->string('auth_project_name')->nullable();
             $table->string('auth_user_domain_name')->default('Default');
 
-            $table->string('access_token')->nullable()->comment('Encrypted');
+            $table->text('access_token')->nullable()->comment('Encrypted');
             $table->timestamp('access_token_expires_at')->nullable();
 
             $table->timestamps();
         });
 
         // Foreign key constraints can be added later if needed
-        Schema::table('openstack_clouds', function (Blueprint $table) {
+        Schema::table('os_clouds', function (Blueprint $table) {
             $table->foreignId('user_id')
                 ->constrained('users')
                 ->onDelete('cascade');
         });
 
         // Add indexes for faster lookups
-        Schema::table('openstack_clouds', function (Blueprint $table) {
+        Schema::table('os_clouds', function (Blueprint $table) {
             $table->index(['name']);
             $table->index(['region_name']);
         });
@@ -46,6 +46,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('openstack_clouds');
+        Schema::dropIfExists('os_clouds');
     }
 };

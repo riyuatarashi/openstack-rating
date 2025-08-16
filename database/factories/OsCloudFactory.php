@@ -1,15 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\OpenstackCloud>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\OsCloud>
  *
- * @mixin \App\Models\OpenstackCloud
+ * @mixin \App\Models\OsCloud
  */
-class OpenstackCloudFactory extends Factory
+final class OsCloudFactory extends Factory
 {
     /**
      * Define the model's default state.

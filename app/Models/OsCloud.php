@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $auth_url
  * @property string $auth_username Encrypted
  * @property string $auth_password Encrypted
- * @property string $auth_project_id Encrypted
+ * @property string $auth_project_id
  * @property string|null $auth_project_name
  * @property string $auth_user_domain_name
  * @property string|null $access_token Encrypted
@@ -34,9 +34,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read User $user
  * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\OsProject> $osProjects
  */
-final class OpenstackCloud extends Model
+final class OsCloud extends Model
 {
-    /** @use HasFactory<\Database\Factories\OpenstackCloudFactory> */
+    /** @use HasFactory<\Database\Factories\OsCloudFactory> */
     use HasFactory;
 
     protected $fillable = [
