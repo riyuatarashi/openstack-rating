@@ -50,7 +50,7 @@ test('password can be reset with valid token', function (): void {
         ->set('email', $user->email)
         ->call('sendPasswordResetLink');
 
-    Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user): true {
+    Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user): bool {
         $response = Volt::test('auth.reset-password', ['token' => $notification->token])
             ->set('email', $user->email)
             ->set('password', 'password')
