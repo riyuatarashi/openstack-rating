@@ -8,7 +8,7 @@ use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Console\Command;
 
-class GatherOpenstackRating extends Command
+final class GatherOpenstackRating extends Command
 {
     /** @var string */
     protected $signature = 'app:gather-openstack-ratings
