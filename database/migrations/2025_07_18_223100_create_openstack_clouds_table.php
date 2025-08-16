@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('region_name');
             $table->string('interface')->default('public'); // public, internal, admin
             $table->string('identity_api_version')->default('3');
+            $table->string('endpoint_rating')->nullable();
 
             $table->string('auth_url');
             $table->string('auth_username')->comment('Encrypted');
@@ -22,6 +23,9 @@ return new class extends Migration
             $table->string('auth_project_id')->comment('Encrypted');
             $table->string('auth_project_name')->nullable();
             $table->string('auth_user_domain_name')->default('Default');
+
+            $table->string('access_token')->nullable()->comment('Encrypted');
+            $table->timestamp('access_token_expires_at')->nullable();
 
             $table->timestamps();
         });

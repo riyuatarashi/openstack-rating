@@ -1,77 +1,161 @@
 <?php
 
+use App\Models\OsRating;
+use App\Services\OpenstackService;
 use Carbon\Carbon;
+use Flux\DateRange;
 use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
 
 new class extends Component {
-    #[Validate('string')]
-    public string $begin_at;
-
-    #[Validate('string')]
-    public string $end_at;
-
+    #[Session]
+    public DateRange $date_range;
     public string $time_diff;
+    public array $data;
+    public array $resources = [];
+
+    private int $color_index = 0;
+    private array $colors = [
+        'orange',
+        'amber',
+        'lime',
+        'emerald',
+        'cyan',
+        'blue',
+        'indigo',
+        'purple',
+        'fuchsia',
+        'pink',
+        'rose',
+    ];
 
     public function boot(): void
     {
         Carbon::setLocale(config('app.locale'));
+        $this->openstackService = app(OpenstackService::class);
+        shuffle($this->colors);
     }
 
     public function mount(): void
     {
-        $this->begin_at = now()->startOfMonth()->toIso8601String();
-        $this->end_at = now()->subHour()->toIso8601String();
+        $this->date_range = new DateRange(now()->startOfMonth(), now()->subDay()->startOfDay());
     }
 
     public function rendering(): void
     {
-        $this->validate();
+        $this->time_diff = $this->date_range->start()->diff($this->date_range->end())->forHumans();
 
-        $begin_at = Carbon::parse($this->begin_at);
-        $end_at = Carbon::parse($this->end_at);
+        if (OpenstackService::isCloudConfigExistForAuth()) {
+            $ratings = [];
 
-        $this->begin_at = $begin_at->startOfHour()->toIso8601String();
-        $this->end_at = $end_at->startOfHour()->toIso8601String();
+            /** @var \App\Models\OpenstackCloud $osCloud */
+            $osCloud = auth()->user()->openstackClouds->first();
 
-        $this->time_diff = $begin_at->diff($end_at)->forHumans();
+            /** @var \App\Models\OsProject $osProject */
+            $osProject = $osCloud->osProjects->first();
+
+            $osProject
+                ->ratings()
+                ->with('resource')
+                ->where('begin', '>=', $this->date_range->start())
+                ->where('end', '<=', $this->date_range->end()->endOfDay())
+                ->where('rating', '>', 0)
+                ->chunkById(500, function ($osRatings) use (&$ratings): void {
+                    /** @var OsRating $osRating */
+                    foreach ($osRatings as $osRating) {
+                        $date = $osRating->end->startOfHour()->format('Y-m-d');
+
+                        if (! isset($ratings[$date])) {
+                            $ratings[$date] = [
+                                'date'  => $date,
+                            ];
+                        }
+
+                        if (! isset($ratings[$date][$osRating->resource->resource_identifier])) {
+                            $ratings[$date][$osRating->resource->resource_identifier] = 0;
+                            $this->resources[$osRating->resource->resource_identifier] = [
+                                'name' => $osRating->resource->name,
+                                'color' => $this->colors[$this->color_index++ % count($this->colors)],
+                            ];
+                        }
+
+                        $ratings[$date][$osRating->resource->resource_identifier] += ($osRating->rating / 55.5) * 1.2;
+                    }
+                });
+
+            ksort($ratings);
+
+            $this->data = array_values($ratings);
+        }
     }
 }; ?>
 
 <section>
     <flux:heading size="lg" class="flex items-center gap-1">
         @lang('Choisissez la fourchette de date que vous souhaitez')
-
-        <flux:tooltip toggleable="">
-            <flux:button icon="information-circle" size="sm" variant="ghost" />
-
-            <flux:tooltip.content class="max-w-[20rem] space-y-2">
-                <p>@lang('Vous pouvez entrer une date avec une heure précise.')</p>
-                <p>@lang('Format standard :') <i>YYYY-mm-dd HH:ii</i></p>
-                <p>@lang('Il est aussi possible de saisir la date en langage naturel (en anglais uniquement).')</p>
-                <p>@lang('Par exemple :') <i>first day of next month at 14:30</i></p>
-            </flux:tooltip.content>
-        </flux:tooltip>
     </flux:heading>
-    <flux:text variant="subtle" wire:text="time_diff" class="mb-5"/>
 
-    <div class="grid grid-cols-2 gap-x-4 gap-y-6">
-        <flux:input
-                wire:model.blur="begin_at"
-                error="begin_at"
-                type="text"
-                label="{{ __('A partir de :') }}"
-                placeholder="{{ now()->startOfMonth()->format('Y-m-d') }}"
-                icon="calendar-date-range"
-        />
+    <flux:text variant="subtle" wire:text="time_diff" class="mb-5" />
 
-        <flux:input
-                wire:model.blur="end_at"
-                error="end_at"
-                type="text"
-                label="{{ __('Jusqu\'à :') }}"
-                placeholder="{{ now()->subHour()->format('Y-m-d') }}"
-                icon="calendar-date-range"
+    <div class="mt-5 mx-auto w-max">
+        <flux:calendar
+                :selectable-header="true"
+                size="xs"
+                mode="range"
+                max="{{ now()->subDay()->format('Y-m-d') }}"
+                wire:model.change="date_range"
         />
+    </div>
+
+    <flux:separator />
+
+    <flux:chart wire:model="data" class="aspect-3/1 mt-5">
+        <flux:chart.svg>
+            @foreach($this->resources as $id => $resource)
+                <flux:chart.line field="{{ $id }}" class="
+                    text-{{ $resource['color'] }}-500
+                    dark:text-{{ $resource['color'] }}-400
+                " />
+            @endforeach
+
+            <flux:chart.axis axis="x" field="date">
+                <flux:chart.axis.line />
+                <flux:chart.axis.tick />
+            </flux:chart.axis>
+
+            <flux:chart.axis axis="y" :format="['style' => 'currency', 'currency' => 'EUR']">
+                <flux:chart.axis.grid />
+                <flux:chart.axis.tick />
+            </flux:chart.axis>
+
+            <flux:chart.cursor />
+        </flux:chart.svg>
+
+        <flux:chart.tooltip>
+            <flux:chart.tooltip.heading field="date" :format="['dateStyle' => 'full']" />
+
+            @foreach($this->resources as $id => $resource)
+                <flux:chart.tooltip.value field="{{ $id }}">
+                    <div class="
+                        text-{{ $resource['color'] }}-500
+                        dark:text-{{ $resource['color'] }}-400
+                    ">
+                        {{ $resource['name'] }}
+                    </div>
+                </flux:chart.tooltip.value>
+            @endforeach
+        </flux:chart.tooltip>
+    </flux:chart>
+
+    <div class="grid auto-rows-min gap-4 md:grid-cols-3">
+        <div class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
+            <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
+        </div>
+        <div class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
+            <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
+        </div>
+        <div class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
+            <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
+        </div>
     </div>
 </section>
