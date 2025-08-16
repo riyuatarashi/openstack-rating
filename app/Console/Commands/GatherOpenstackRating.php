@@ -14,7 +14,7 @@ use Illuminate\Console\Command;
 final class GatherOpenstackRating extends Command
 {
     /** @var string */
-    protected $signature = 'app:gather-openstack-ratings
+    protected $signature = 'app:gather-os-ratings
                             {start : The start date for gathering data}
                             {end : The end date for gathering data}
                             {--u|user= : The user to gather data for}
@@ -46,7 +46,7 @@ final class GatherOpenstackRating extends Command
             $users = User::query()
                 ->where('id', '=', $user)
                 ->orWhere('email', '=', $user)
-                ->orWhere('username', '=', $user)
+                ->orWhere('name', '=', $user)
                 ->get();
         } else {
             $this->error('You must specify either --all or --user option.');
