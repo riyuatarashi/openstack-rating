@@ -3,7 +3,7 @@
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Volt\Volt;
 
-it('can handle yaml', function () {
+it('can handle yaml', function (): void {
     Storage::fake('local');
 
     $yaml = TemporaryUploadedFile::fake()->createWithContent(
@@ -21,7 +21,7 @@ it('can handle yaml', function () {
     $component->assertSet('cloud_yaml_content', 'test.yaml content');
 });
 
-it('fails on other file types', function () {
+it('fails on other file types', function (): void {
     Storage::fake('local');
 
     $file = TemporaryUploadedFile::fake()->createWithContent(

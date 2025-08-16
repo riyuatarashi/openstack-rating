@@ -59,7 +59,7 @@ new class extends Component {
                 ->where('begin', '>=', $this->date_range->start())
                 ->where('end', '<=', $this->date_range->end()->endOfDay())
                 ->where('rating', '>', 0)
-                ->chunkById(500, function ($osRatings) use (&$ratings) {
+                ->chunkById(500, function ($osRatings) use (&$ratings): void {
                     /** @var OsRating $osRating */
                     foreach ($osRatings as $osRating) {
                         $date = $osRating->end->startOfHour()->format('Y-m-d');
