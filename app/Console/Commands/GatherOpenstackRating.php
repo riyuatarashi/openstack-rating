@@ -2,6 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Models\OsProject;
+use App\Models\OsRating;
+use App\Models\OsResource;
 use App\Models\User;
 use App\Services\OpenstackService;
 use Carbon\Carbon;
@@ -53,8 +56,96 @@ final class GatherOpenstackRating extends Command
 
         foreach ($users as $user) {
             $this->info("Gathering data for user: {$user->name} (ID: {$user->id})");
-            $ratings = $openstackService->getRatingsFor(new CarbonPeriod($start, $end), $user);
+            $clouds = $user->clouds;
+
+            if ($clouds->isEmpty()) {
+                $this->warn("User {$user->name} (ID: {$user->id}) has no OpenStack clouds configured.");
+
+                continue;
+            }
+
+            /** @var \App\Models\OsCloud $cloud */
+            $cloud = $clouds->first();
+
+            $this->info('Gathering data ...');
+            $dataframes = $openstackService->getRatingsFor(new CarbonPeriod($start, $end), $user);
+
+            if (empty($dataframes)) {
+                $this->warn('No dataframes found for user '.$user->name.' (ID: '.$user->id.').');
+
+                continue;
+            }
+
+            $this->info('Processing dataframes ...');
+            $progressBar = $this->output->createProgressBar(
+                (int) collect($dataframes)
+                    ->reduce(fn ($carry, $item): float|int => $carry + count($item['resources']), 0)
+            );
+
+            $progressBar->setFormat(' %current%/%max% [%bar%] %percent:3s%% %message%');
+            $progressBar->setMessage('');
+            $progressBar->start();
+
+            foreach ($dataframes as $dataframe) {
+                foreach ($dataframe['resources'] as $resource) {
+                    $progressBar->setMessage('Processing resource: '.$resource['desc']['id']);
+                    $OSProject = OsProject::query()->firstOrCreate(
+                        [
+                            'project_identifier' => $resource['desc']['project_id'],
+                        ],
+                        [
+                            'project_identifier' => $resource['desc']['project_id'],
+                            'name' => $resource['desc']['project_id'],
+                            'os_cloud_id' => $cloud->id,
+                        ]
+                    );
+
+                    $OSResource = OsResource::query()->firstOrCreate(
+                        [
+                            'resource_identifier' => $resource['desc']['id'],
+                        ],
+                        [
+                            'resource_identifier' => $resource['desc']['id'],
+                            'name' => $resource['desc']['flavor_name'] ?? $resource['service'],
+                            'flavor_name' => $resource['desc']['flavor_name'] ?? null,
+                            'state' => $resource['desc']['state'] ?? null,
+                            'os_project_id' => $OSProject->id,
+                        ]
+                    );
+
+                    if (
+                        OsRating::query()
+                            ->where('begin', '=', Carbon::parse($dataframe['begin']))
+                            ->where('end', '=', Carbon::parse($dataframe['end']))
+                            ->where('service', '=', $resource['service'])
+                            ->where('os_resource_id', '=', $OSResource->id)
+                            ->exists()
+                    ) {
+                        $progressBar->setMessage('Skipped');
+                        $progressBar->advance();
+
+                        continue; // Skip if the rating already exists
+                    }
+
+                    $OSRating = new OsRating;
+                    $OSRating->fill([
+                        'rating' => (float) $resource['rating'],
+                        'volume' => (float) $resource['volume'],
+                        'begin' => Carbon::parse($dataframe['begin']),
+                        'end' => Carbon::parse($dataframe['end']),
+                        'service' => $resource['service'],
+                        'os_resource_id' => $OSResource->id,
+                    ]);
+                    $OSRating->save();
+
+                    $progressBar->advance();
+                }
+            }
+
+            $progressBar->finish();
         }
+
+        $this->info("\nGathering OpenStack ratings completed successfully.");
 
         return Command::SUCCESS;
     }
