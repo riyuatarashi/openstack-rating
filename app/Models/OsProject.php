@@ -14,10 +14,10 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  * @property string $name
  * @property string|null $description
  * @property string $project_identifier encrypted
- * @property int $openstack_cloud_id
+ * @property int $os_cloud_id
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read OpenstackCloud $openstackCloud
+ * @property-read OsCloud $cloud
  * @property-read \Illuminate\Database\Eloquent\Collection<OsResource> $resources
  * @property-read \Illuminate\Database\Eloquent\Collection<OsRating> $ratings
  */
@@ -27,7 +27,7 @@ final class OsProject extends Model
         'name',
         'description',
         'project_identifier',
-        'openstack_cloud_id',
+        'os_cloud_id',
     ];
 
     /** @var array<string, string> */
@@ -36,9 +36,9 @@ final class OsProject extends Model
         'updated_at' => 'datetime',
     ];
 
-    public function openstackCloud(): BelongsTo
+    public function cloud(): BelongsTo
     {
-        return $this->belongsTo(OpenstackCloud::class);
+        return $this->belongsTo(OsCloud::class);
     }
 
     public function resources(): HasMany

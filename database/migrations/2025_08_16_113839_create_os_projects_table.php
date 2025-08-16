@@ -22,8 +22,8 @@ return new class extends Migration
         });
 
         Schema::table('os_projects', function (Blueprint $table) {
-            $table->foreignId('openstack_cloud_id')
-                ->constrained('openstack_clouds')
+            $table->foreignId('os_cloud_id')
+                ->constrained('os_clouds')
                 ->onDelete('cascade');
         });
     }

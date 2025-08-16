@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\OpenstackCloud;
+use App\Models\OsCloud;
 use App\Models\OsProject;
 use App\Models\OsRating;
 use App\Models\OsResource;
@@ -17,7 +17,7 @@ final class OpenstackService
 {
     public static function isCloudConfigExistForAuth(?User $user = null): bool
     {
-        return $user?->openstackClouds()->exists() ?? auth()->user()->openstackClouds()->exists();
+        return $user?->clouds()->exists() ?? auth()->user()->clouds()->exists();
     }
 
     public function getAccessToken(?User $user = null): string
@@ -26,8 +26,8 @@ final class OpenstackService
             throw new \RuntimeException('No OpenStack cloud configuration found for the user.');
         }
 
-        /** @var ?\App\Models\OpenstackCloud $cloud */
-        $cloud = $user?->openstackClouds->first() ?? auth()->user()->openstackClouds->first();
+        /** @var ?\App\Models\OsCloud $cloud */
+        $cloud = $user?->clouds->first() ?? auth()->user()->clouds->first();
 
         if (
             $cloud->access_token === null
@@ -65,7 +65,7 @@ final class OpenstackService
         return $cloud->access_token;
     }
 
-    public function retrieveRatingEndpoint(OpenstackCloud $openstackCloud, array $catalog): string
+    public function retrieveRatingEndpoint(OsCloud $openstackCloud, array $catalog): string
     {
         $endpoints = collect($catalog)
             ->where('type', 'rating')
@@ -93,8 +93,8 @@ final class OpenstackService
             throw new \RuntimeException('No OpenStack cloud configuration found for the user.');
         }
 
-        /** @var OpenstackCloud $cloud */
-        $cloud = $user?->openstackClouds->first() ?? auth()->user()->openstackClouds->first();
+        /** @var OsCloud $cloud */
+        $cloud = $user?->clouds->first() ?? auth()->user()->clouds->first();
 
         $accessToken = $this->getAccessToken($user);
         $response = Http::withHeaders([
@@ -120,7 +120,7 @@ final class OpenstackService
                     [
                         'project_identifier' => $resource['desc']['project_id'],
                         'name' => $resource['desc']['project_id'],
-                        'openstack_cloud_id' => $cloud->id,
+                        'os_cloud_id' => $cloud->id,
                     ]
                 );
 

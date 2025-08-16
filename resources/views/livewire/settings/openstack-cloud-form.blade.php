@@ -35,7 +35,7 @@ new class extends Component {
 
     public function rendering(): void
     {
-        if ($this->cloud_yaml instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+        if ($this->cloud_yaml instanceof TemporaryUploadedFile) {
             $this->cloud_yaml_content = $this->cloud_yaml->get();
 
             $this->cloud_yaml->delete();
