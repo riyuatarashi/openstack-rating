@@ -85,7 +85,6 @@ new class extends Component {
             ksort($ratings);
 
             $this->data = array_values($ratings);
-            ray($this->data);
         }
     }
 }; ?>

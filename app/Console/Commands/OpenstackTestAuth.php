@@ -73,14 +73,10 @@ final class OpenstackTestAuth extends Command
                 ->where('type', 'rating')
                 ->first()['endpoints'] ?? [];
 
-            ray($endpoints);
-
             $url = collect($endpoints)
                 ->where('interface', $cloudConfig->interface)
                 ->where('region', $cloudConfig->region_name)
                 ->first()['url'] ?? '';
-
-            ray($url);
         } else {
             $this->info('OpenStack auth token:');
             $this->line($cloudConfig->access_token);
