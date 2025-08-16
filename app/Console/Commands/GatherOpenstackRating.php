@@ -44,9 +44,11 @@ final class GatherOpenstackRating extends Command
         } elseif ($user) {
             $this->info('Gathering data for user '.$user.' from '.$start->toDateString().' to '.$end->toDateString());
             $users = User::query()
-                ->where('id', '=', $user)
-                ->orWhere('email', '=', $user)
-                ->orWhere('name', '=', $user)
+                ->when(is_numeric($user), fn ($query) => $query->where('id', '=', (int) $user))
+                ->when(! is_numeric($user), fn ($query) => $query
+                    ->where('email', '=', $user)
+                    ->orWhere('name', '=', $user)
+                )
                 ->get();
         } else {
             $this->error('You must specify either --all or --user option.');
