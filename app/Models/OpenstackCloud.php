@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * OpenstackCloud Model.
@@ -31,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property \Carbon\Carbon|null $created_at
  * @property \Carbon\Carbon|null $updated_at
  * @property-read User $user
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\OsProject> $osProjects
  */
 final class OpenstackCloud extends Model
 {
@@ -53,7 +55,6 @@ final class OpenstackCloud extends Model
     protected $casts = [
         'auth_username' => 'encrypted',
         'auth_password' => 'encrypted',
-        'auth_project_id' => 'encrypted',
         'access_token' => 'encrypted',
         'access_token_expires_at' => 'datetime',
         'created_at' => 'datetime',
@@ -70,5 +71,10 @@ final class OpenstackCloud extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function osProjects(): HasMany
+    {
+        return $this->hasMany(OsProject::class);
     }
 }
