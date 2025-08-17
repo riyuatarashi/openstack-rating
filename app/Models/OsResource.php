@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
@@ -39,5 +40,10 @@ final class OsResource extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(OsProject::class);
+    }
+
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(OsRating::class, 'os_resource_id');
     }
 }

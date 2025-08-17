@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 /**
  * @property int $id
@@ -43,5 +44,17 @@ final class OsRating extends Model
     public function resource(): BelongsTo
     {
         return $this->belongsTo(OsResource::class, 'os_resource_id', 'id');
+    }
+
+    public function project(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            OsProject::class,
+            OsResource::class,
+            'id', // Foreign key on OsResource table
+            'id', // Foreign key on OsProject table
+            'os_resource_id', // Local key on OsRating table
+            'os_project_id' // Local key on OsResource table
+        );
     }
 }
