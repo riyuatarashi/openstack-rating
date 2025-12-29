@@ -99,7 +99,7 @@ final class OpenstackService
             'Content-Type' => 'application/json',
         ])
             ->acceptJson()
-            ->get($cloud->endpoint_rating.'v1/storage/dataframes', [
+            ->get($cloud->endpoint_rating.'/v1/storage/dataframes', [
                 'begin' => $period?->start()?->toIso8601String() ?? now()->startOfMonth()->toIso8601String(),
                 'end' => $period?->end()?->toIso8601String() ?? now()->subHour()->startOfHour()->toIso8601String(),
             ]);
